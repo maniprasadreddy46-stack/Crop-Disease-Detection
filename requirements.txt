@@ -1,0 +1,9 @@
+
+streamlit
+tensorflow
+numpy
+Pillow
+opencv-python-headless
+google-genai
+python-dotenv
+streamlit-mic-recorder
