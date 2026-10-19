@@ -8,7 +8,7 @@ import streamlit.components.v1 as components
 import tensorflow as tf
 from PIL import Image
 
-# Optional face detection helps reject obvious non-crop photos (for example, selfies).
+# Optional face detection helps reject some obvious non-crop photos.
 try:
     import cv2
     OPENCV_AVAILABLE = True
@@ -29,48 +29,99 @@ try:
 except ImportError:
     pass
 
-st.set_page_config(page_title="CropCare AI | Multi-Crop Disease Detection", page_icon="🌿", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(
+    page_title="CropCare AI | Multi-Crop Disease Detection",
+    page_icon="🌿",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
 
 # -------------------- PROFESSIONAL UI THEME --------------------
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap');
-:root { --forest:#123d2b; --leaf:#23764b; --mint:#e9f5ed; --ink:#17251d; --muted:#64746a; --line:#dce8df; }
-html, body, [class*="css"] { font-family:'DM Sans','Noto Sans Telugu',sans-serif; }
-.stApp { background:linear-gradient(180deg,#f5faf6 0%,#f8faf8 42%,#f3f7f4 100%); color:var(--ink); }
-[data-testid="stHeader"] { background:rgba(245,250,246,.85); }
-.block-container { max-width:1180px; padding-top:1.6rem; padding-bottom:3rem; }
-h1,h2,h3 { color:var(--forest)!important; letter-spacing:-.025em; }
-h1 { font-weight:700!important; }
-h2 { font-weight:700!important; margin-top:.4rem!important; }
-p, label, .stCaption { color:var(--ink); }
-.hero { padding:30px 32px; border-radius:24px; color:white; background:linear-gradient(120deg,#123d2b 0%,#1d6841 58%,#4a9461 100%); box-shadow:0 14px 35px rgba(18,61,43,.14); margin:0 0 22px 0; position:relative; overflow:hidden; }
-.hero:after { content:'🌿'; position:absolute; right:34px; top:18px; font-size:78px; opacity:.18; }
-.hero-kicker { font-size:12px; letter-spacing:.16em; text-transform:uppercase; font-weight:700; color:#c9ecd4; margin-bottom:9px; }
-.hero h1 { color:white!important; font-size:clamp(28px,4vw,42px); margin:0 0 8px 0; line-height:1.15; }
-.hero p { color:#e5f3e9; margin:0; max-width:680px; font-size:15px; line-height:1.6; }
-.section-card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:20px 22px; box-shadow:0 5px 18px rgba(22,54,34,.035); margin-bottom:16px; }
-.section-eyebrow { font-size:11px; font-weight:700; color:var(--leaf); text-transform:uppercase; letter-spacing:.12em; margin-bottom:6px; }
-div[data-testid="stFileUploader"] { background:#fbfdfb; border:1.5px dashed #a9cbb3; border-radius:14px; padding:12px; }
-.stButton > button, .stFormSubmitButton > button { border-radius:11px; min-height:42px; font-weight:700; border:1px solid #c8dbce; transition:all .15s ease; }
-.stButton > button[kind="primary"], .stFormSubmitButton > button[kind="primary"] { background:var(--leaf); color:white; border:0; }
-.stButton > button:hover, .stFormSubmitButton > button:hover { border-color:var(--leaf); transform:translateY(-1px); }
-[data-testid="stMetric"] { background:#f7fbf8; border:1px solid var(--line); padding:15px 17px; border-radius:15px; }
-[data-testid="stMetricLabel"] { color:var(--muted); font-weight:600; }
-[data-testid="stMetricValue"] { color:var(--forest); font-weight:700; }
-[data-testid="stChatMessage"] { border:1px solid #e1eae3; border-radius:15px; padding:12px 15px; margin-bottom:10px; }
-[data-testid="stExpander"] { background:#fff; border:1px solid var(--line); border-radius:13px; }
-[data-testid="stAlert"] { border-radius:13px; }
-[data-testid="stSelectbox"] > div > div, [data-testid="stTextInput"] input { border-radius:10px; }
-hr { border-color:var(--line); }
-.small-note { color:var(--muted); font-size:12px; line-height:1.6; }
-.status-pill { display:inline-block; background:#e1f3e6; color:#1d6841; padding:5px 10px; border-radius:999px; font-size:12px; font-weight:700; margin-top:12px; }
-@media (max-width:700px) { .block-container { padding-left:1rem; padding-right:1rem; } .hero { padding:24px 20px; } .hero:after { right:12px; top:12px; font-size:52px; } }
-</style>
-""", unsafe_allow_html=True)
+st.markdown(
+    """
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap');
+    :root { --forest:#123d2b; --leaf:#23764b; --mint:#e9f5ed; --ink:#17251d; --muted:#64746a; --line:#dce8df; }
+    html, body, [class*="css"] { font-family:'DM Sans','Noto Sans Telugu',sans-serif; }
+    .stApp { background:linear-gradient(180deg,#f5faf6 0%,#f8faf8 42%,#f3f7f4 100%); color:var(--ink); }
+    [data-testid="stHeader"] { background:rgba(245,250,246,.85); }
+    .block-container { max-width:1180px; padding-top:1.6rem; padding-bottom:3rem; }
+    h1,h2,h3 { color:var(--forest)!important; letter-spacing:-.025em; }
+    h1 { font-weight:700!important; }
+    h2 { font-weight:700!important; margin-top:.4rem!important; }
+    p, label, .stCaption { color:var(--ink); }
+    .hero { padding:30px 32px; border-radius:24px; color:white; background:linear-gradient(120deg,#123d2b 0%,#1d6841 58%,#4a9461 100%); box-shadow:0 14px 35px rgba(18,61,43,.14); margin:0 0 22px 0; position:relative; overflow:hidden; }
+    .hero:after { content:'🌿'; position:absolute; right:34px; top:18px; font-size:78px; opacity:.18; }
+    .hero-kicker { font-size:12px; letter-spacing:.16em; text-transform:uppercase; font-weight:700; color:#c9ecd4; margin-bottom:9px; }
+    .hero h1 { color:white!important; font-size:clamp(28px,4vw,42px); margin:0 0 8px 0; line-height:1.15; }
+    .hero p { color:#e5f3e9; margin:0; max-width:680px; font-size:15px; line-height:1.6; }
+    .section-card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:20px 22px; box-shadow:0 5px 18px rgba(22,54,34,.035); margin-bottom:16px; }
+    .section-eyebrow { font-size:11px; font-weight:700; color:var(--leaf); text-transform:uppercase; letter-spacing:.12em; margin-bottom:6px; }
+    div[data-testid="stFileUploader"] { background:#fbfdfb; border:1.5px dashed #a9cbb3; border-radius:14px; padding:12px; }
+    .stButton > button, .stFormSubmitButton > button { border-radius:11px; min-height:42px; font-weight:700; border:1px solid #c8dbce; transition:all .15s ease; }
+    .stButton > button[kind="primary"], .stFormSubmitButton > button[kind="primary"] { background:var(--leaf); color:white; border:0; }
+    .stButton > button:hover, .stFormSubmitButton > button:hover { border-color:var(--leaf); transform:translateY(-1px); }
+    [data-testid="stMetric"] { background:#f7fbf8; border:1px solid var(--line); padding:15px 17px; border-radius:15px; }
+    [data-testid="stMetricLabel"] { color:var(--muted); font-weight:600; }
+    [data-testid="stMetricValue"] { color:var(--forest); font-weight:700; }
+    [data-testid="stChatMessage"] { border:1px solid #e1eae3; border-radius:15px; padding:12px 15px; margin-bottom:10px; }
+    [data-testid="stExpander"] { background:#fff; border:1px solid var(--line); border-radius:13px; }
+    [data-testid="stAlert"] { border-radius:13px; }
+    [data-testid="stSelectbox"] > div > div, [data-testid="stTextInput"] input { border-radius:10px; }
+    hr { border-color:var(--line); }
+    .small-note { color:var(--muted); font-size:12px; line-height:1.6; }
+    .status-pill { display:inline-block; background:#e1f3e6; color:#1d6841; padding:5px 10px; border-radius:999px; font-size:12px; font-weight:700; margin-top:12px; }
+    /* Fix faded text on light backgrounds */
+.stApp p,
+.stApp li,
+.stApp label,
+.stApp [data-testid="stMarkdownContainer"],
+.stApp [data-testid="stMarkdownContainer"] p,
+.stApp [data-testid="stMarkdownContainer"] li {
+    color: #17251d !important;
+}
+
+/* Dark, readable headings */
+.stApp h1,
+.stApp h2,
+.stApp h3,
+.stApp h4 {
+    color: #123d2b !important;
+}
+
+/* Chat messages and alerts */
+[data-testid="stChatMessage"] p,
+[data-testid="stAlert"] p {
+    color: #17251d !important;
+}
+
+/* Keep hero banner text white */
+.hero h1 {
+    color: #ffffff !important;
+}
+.hero p {
+    color: #e5f3e9 !important;
+}
+/* Improve assistant chat text visibility */
+[data-testid="stChatMessage"] {
+    color: #17251d !important;
+    opacity: 1 !important;
+}
+
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"],
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] p,
+[data-testid="stChatMessage"] li {
+    color: #17251d !important;
+    opacity: 1 !important;
+}
+    @media (max-width:700px) { .block-container { padding-left:1rem; padding-right:1rem; } .hero { padding:24px 20px; } .hero:after { right:12px; top:12px; font-size:52px; } }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 BASE_DIR = Path(__file__).resolve().parent
-MODEL_PATH = BASE_DIR / "model" / "three_crop_model_final.keras"
+MODEL_PATH = BASE_DIR / "model" / "three_crop_model_compat.keras"
 CLASS_NAMES_PATH = BASE_DIR / "model" / "three_crop_class_names.json"
 IMAGE_SIZE = (224, 224)
 CROP_PREFIXES = {"Paddy": "paddy_", "Cotton": "cotton_", "Chilli": "chilli_"}
@@ -90,10 +141,9 @@ def get_gemini_api_key():
 
 
 def get_gemini_client():
-    """Create a Gemini client and preserve the real error for diagnostics."""
     api_key = get_gemini_api_key()
     if not api_key:
-        return None, "API key not found. Check that .env is beside app.py and contains GEMINI_API_KEY=your_key."
+        return None, "API key not found. Add GEMINI_API_KEY to Streamlit Cloud Secrets or your local .env file."
     try:
         from google import genai
         return genai.Client(api_key=api_key), None
@@ -148,25 +198,39 @@ def clean_disease_name(label):
     return name.replace("_", " ").title()
 
 
-def detect_human_face(image):
-    """Return True when OpenCV's frontal-face detector finds an obvious face.
 
-    This is a simple guard against selfies, not a general-purpose crop/leaf detector.
-    If OpenCV is not installed, return None so the app can explain the limitation.
-    """
+def detect_human_face(image):
+    """Detect obvious human faces; this is not a crop-leaf classifier."""
     if not OPENCV_AVAILABLE:
         return None
+
     try:
         rgb = np.asarray(image.convert("RGB"))
         gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
-        cascade_path = str(Path(cv2.data.haarcascades) / "haarcascade_frontalface_default.xml")
+
+        cascade_path = str(
+            Path(cv2.data.haarcascades)
+            / "haarcascade_frontalface_default.xml"
+        )
         detector = cv2.CascadeClassifier(cascade_path)
+
         if detector.empty():
             return None
-        faces = detector.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(50, 50))
+
+        # Use stricter settings to reduce false positives.
+        faces = detector.detectMultiScale(
+            gray,
+            scaleFactor=1.15,
+            minNeighbors=8,
+            minSize=(80, 80),
+            flags=cv2.CASCADE_SCALE_IMAGE,
+        )
+
         return len(faces) > 0
+
     except Exception:
         return None
+
 
 
 def get_recommendation(disease):
@@ -189,27 +253,26 @@ def fallback_answer(question, language):
     if language == "తెలుగు":
         if "blast" in q or "బ్లాస్ట్" in q:
             return "వరి బ్లాస్ట్ వ్యాధి అనుమానం ఉంటే ఆకులపై మచ్చలను పరిశీలించండి. ఫోటో ఆధారంగా మాత్రమే ఖచ్చితమైన నిర్ధారణ చేయలేం. దగ్గరలోని వ్యవసాయ నిపుణుడిని సంప్రదించి సరైన నియంత్రణ చర్యలను నిర్ధారించండి."
-        if any(w in q for w in ["score", "accuracy", "శాతం", "స్కోర్"]):
+        if any(w in q for w in ("score", "accuracy", "శాతం", "స్కోర్")):
             return "మోడల్ స్కోర్ అనేది ఆ తరగతికి మోడల్ ఇచ్చిన probability మాత్రమే; అది ఖచ్చితమైన వ్యాధి నిర్ధారణకు హామీ కాదు. గత టెస్ట్ సెట్‌లో నమోదైన మొత్తం accuracy 74.52%. ఒక్క ఫోటో ఫలితం వేరుగా ఉండవచ్చు."
-        return "నేను వరి, పత్తి, మిరప పంటల వ్యాధుల గురించి ప్రాథమిక సమాచారం ఇవ్వగలను. పంట పేరు, కనిపిస్తున్న లక్షణాలు చెప్పండి లేదా లీఫ్ ఫోటోను అప్లోడ్ చేయండి. చికిత్సకు ముందు వ్యవసాయ నిపుణుడితో నిర్ధారించుకోండి. ChatGPT తరహా AI సమాధానాల కోసం Gemini API key సెటప్ చేయాలి."
-    if any(w in q for w in ["hello", "hi", "hey"]):
+        return "నేను వరి, పత్తి, మిరప పంటల వ్యాధుల గురించి ప్రాథమిక సమాచారం ఇవ్వగలను. పంట పేరు, కనిపిస్తున్న లక్షణాలు చెప్పండి లేదా లీఫ్ ఫోటోను అప్లోడ్ చేయండి. చికిత్సకు ముందు వ్యవసాయ నిపుణుడితో నిర్ధారించుకోండి."
+    if any(w in q for w in ("hello", "hi", "hey")):
         return "Hello! I am your Crop Disease Assistant. Ask about Paddy, Cotton, Chilli, symptoms, prevention, model scores, or your project."
     if "blast" in q:
         return "Paddy Blast is a possible rice disease, but an image model cannot confirm it with certainty. Check the leaf and surrounding plants, and ask an agricultural expert to confirm before choosing treatment."
-    if any(w in q for w in ["score", "accuracy", "confidence", "probability"]):
+    if any(w in q for w in ("score", "accuracy", "confidence", "probability")):
         return "The model score is its output probability for a class, not a guarantee of correctness. The previously measured overall test accuracy was 74.52% on 2,076 test images."
-    if any(w in q for w in ["prevent", "prevention", "control"]):
+    if any(w in q for w in ("prevent", "prevention", "control")):
         return "Monitor plants regularly, maintain field hygiene, avoid moving potentially infected plant material between fields, and confirm the disease with an agricultural expert before applying treatment."
-    return "Gemini API is not configured yet, so this is a basic fallback response. Add GEMINI_API_KEY to your local .env file to enable natural AI answers. I can help with Paddy, Cotton, and Chilli disease questions."
+    return "Gemini API is not configured or currently unavailable, so this is a basic fallback response. I can help with Paddy, Cotton, and Chilli disease questions."
 
 
 def ask_gemini(question, language, history, prediction):
-    """Ask Gemini and return readable diagnostics instead of hiding errors."""
     client, client_error = get_gemini_client()
     if client is None:
         return None, client_error
 
-    prediction_context = "No recent leaf prediction is available."
+    prediction_context = "No recent reliable leaf prediction is available."
     if prediction:
         prediction_context = (
             f"Latest app prediction: crop={prediction['crop']}; "
@@ -228,7 +291,6 @@ def ask_gemini(question, language, history, prediction):
         "expert before treatment. A model score is not calibrated certainty. "
         "Be transparent when uncertain."
     )
-
     lines = [f"Instructions: {instruction}", prediction_context]
     for item in history[-10:]:
         role = "User" if item.get("role") == "user" else "Assistant"
@@ -249,13 +311,19 @@ def ask_gemini(question, language, history, prediction):
 
 
 # ==================== MAIN PAGE ====================
-st.markdown(f'''<div class="hero">
-  <div class="hero-kicker">CropCare AI · Smart Agriculture</div>
-  <h1>Multi-Crop Disease Detection</h1>
-  <p>Screen leaf images for common Paddy, Cotton and Chilli disease classes with a deep-learning model, then explore practical guidance with the AI crop assistant.</p>
-  <span class="status-pill">● Model ready &nbsp; · &nbsp; MobileNetV2 &nbsp; · &nbsp; {len(class_names)} trained classes</span>
-</div>''', unsafe_allow_html=True)
-st.markdown('<div class="section-card"><div class="section-eyebrow">01 / Leaf screening</div><h2 style="margin:0">Upload a crop image</h2><p class="small-note">Choose the crop first, then upload a clear JPG or PNG leaf photo. Results are preliminary and should be confirmed by an agricultural expert.</p></div>', unsafe_allow_html=True)
+st.markdown(
+    f'''<div class="hero">
+      <div class="hero-kicker">CropCare AI · Smart Agriculture</div>
+      <h1>Multi-Crop Disease Detection</h1>
+      <p>Screen leaf images for common Paddy, Cotton and Chilli disease classes with a deep-learning model, then explore practical guidance with the AI crop assistant.</p>
+      <span class="status-pill">● Model ready &nbsp; · &nbsp; MobileNetV2 &nbsp; · &nbsp; {len(class_names)} trained classes</span>
+    </div>''',
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<div class="section-card"><div class="section-eyebrow">01 / Leaf screening</div><h2 style="margin:0">Upload a crop image</h2><p class="small-note">Choose the crop first, then upload a clear JPG or PNG leaf photo. Results are preliminary and should be confirmed by an agricultural expert.</p></div>',
+    unsafe_allow_html=True,
+)
 
 crop_col, upload_col = st.columns([0.9, 1.4], gap="large")
 with crop_col:
@@ -269,20 +337,16 @@ with upload_col:
         horizontal=True,
         key="image_source_mode",
     )
-    uploaded_file = None
-    camera_photo = None
     if image_source_mode == "📁 Upload image":
-        uploaded_file = st.file_uploader(
+        image_input = st.file_uploader(
             "Upload leaf image (JPG or PNG)",
             type=["jpg", "jpeg", "png"],
             help="Choose a clear photo of one crop leaf.",
         )
-        image_input = uploaded_file
         image_caption = "Selected leaf image"
     else:
         st.caption("Allow camera permission when your browser asks. Hold the leaf in good light and keep it in focus.")
-        camera_photo = st.camera_input("Take a leaf photo", key="crop_leaf_camera")
-        image_input = camera_photo
+        image_input = st.camera_input("Take a leaf photo", key="crop_leaf_camera")
         image_caption = "Captured leaf photo"
 
 if image_input is not None:
@@ -291,16 +355,18 @@ if image_input is not None:
     except Exception:
         st.error("Unable to read this image. Try another JPG or PNG, or take the photo again.")
         st.stop()
+
     st.image(image, caption=image_caption, width=350)
     face_check = detect_human_face(image)
     if face_check is True:
-        st.error("🚫 A human face was detected in this photo. Please take or upload a clear photo of a Paddy, Cotton, or Chilli leaf instead. Disease prediction is disabled for this image.")
+        st.error("🚫 A human face was detected. Upload a clear crop-leaf photo instead. Prediction is disabled for this image.")
     elif face_check is None:
-        st.info("Image check: automatic face screening is unavailable. The app will still warn you when the model score is low. For face-photo blocking, install OpenCV with: python -m pip install opencv-python")
+        st.warning("⚠️ Face screening is unavailable. Prediction is disabled until image screening works correctly. Check that OpenCV is installed in requirements.txt.")
     else:
-        st.success("Image check passed: no obvious human face detected. This does not guarantee that the image contains a crop leaf.")
+        st.info("No obvious face detected. This does not guarantee that the image contains a crop leaf.")
 
-    if st.button("🔍 Detect Disease", type="primary", disabled=(face_check is True)):
+    face_blocked = face_check is not False
+    if st.button("🔍 Detect Disease", type="primary", disabled=face_blocked):
         with st.spinner("Analyzing the image..."):
             resized_image = image.resize(IMAGE_SIZE)
             image_array = np.asarray(resized_image, dtype=np.float32)
@@ -308,10 +374,12 @@ if image_input is not None:
             if len(probabilities) != len(class_names):
                 st.error("Prediction output does not match class names.")
                 st.stop()
+
             crop_indices = [i for i, name in enumerate(class_names) if name in selected_classes]
             if not crop_indices:
                 st.error("No classes are available for this crop.")
                 st.stop()
+
             crop_probabilities = probabilities[crop_indices]
             best_position = int(np.argmax(crop_probabilities))
             predicted_index = crop_indices[best_position]
@@ -323,20 +391,21 @@ if image_input is not None:
                 for pos in top_positions
             ]
 
-        # A low score should not be presented as a disease identification.
         LOW_CONFIDENCE_THRESHOLD = 35.0
         if confidence < LOW_CONFIDENCE_THRESHOLD:
             st.session_state.pop("last_prediction", None)
             st.error(f"⚠️ Low model score ({confidence:.2f}%). The model cannot make a reliable prediction from this image.")
-            st.warning("Please upload or capture a clear close-up of one Paddy, Cotton, or Chilli leaf in good lighting. Avoid selfies, people, soil-only photos, screenshots, and blurry images. No disease has been confirmed.")
+            st.warning("Upload a clear close-up of one Paddy, Cotton, or Chilli leaf in good lighting. Avoid selfies, people, soil-only photos, screenshots, and blurry images. No disease has been confirmed.")
             st.subheader("Top possible classes (not a diagnosis)")
             for label, score in top_results:
                 st.write(f"**{label}** — {score:.2f}%")
             st.stop()
 
         st.session_state["last_prediction"] = {
-            "crop": selected_crop, "disease": disease,
-            "score": confidence, "top_results": top_results,
+            "crop": selected_crop,
+            "disease": disease,
+            "score": confidence,
+            "top_results": top_results,
         }
         st.success("Prediction completed!")
         c1, c2 = st.columns(2)
@@ -356,7 +425,6 @@ if image_input is not None:
         st.write(get_recommendation(disease))
         st.caption("This is a screening prototype. Image quality, lighting, backgrounds, and differences from training data can affect predictions. Confirm results with an agricultural expert.")
 
-
 # ==================== CHATBOT AND VOICE ====================
 st.divider()
 st.header("🤖 AI Crop Chatbot & Voice Assistant")
@@ -366,7 +434,6 @@ speech_language = LANGUAGES[language]["speech_code"]
 
 if "crop_chat_history" not in st.session_state:
     st.session_state.crop_chat_history = []
-
 last_prediction = st.session_state.get("last_prediction")
 if last_prediction:
     with st.expander("🌿 Latest detection result"):
@@ -394,7 +461,7 @@ if VOICE_INPUT_AVAILABLE:
     except Exception:
         st.warning("Voice recognition failed. Check microphone permission or type your question. Telugu speech recognition depends on browser support.")
 else:
-    st.info("Voice input package is missing. Run: python -m pip install streamlit-mic-recorder")
+    st.info("Voice input package is missing. Add streamlit-mic-recorder to requirements.txt and redeploy.")
 
 with st.form("crop_chat_form", clear_on_submit=True):
     typed_question = st.text_input(
@@ -430,57 +497,66 @@ if latest_answer:
     if st.button("🔊 Read Latest Answer Aloud / సమాధానం వినండి"):
         answer_json = json.dumps(latest_answer, ensure_ascii=False)
         lang_json = json.dumps(speech_language)
-        components.html(
-            f"""
-            <div style="font-family:sans-serif">
-              <button id="speak" style="padding:8px 12px;cursor:pointer">▶ Play / వినండి</button>
-              <button id="stop" style="padding:8px 12px;cursor:pointer">■ Stop / ఆపండి</button>
-              <p id="status" aria-live="polite"></p>
-              <script>
-                const answerText = {answer_json};
-                const speechLang = {lang_json};
-                const status = document.getElementById("status");
-                document.getElementById("speak").onclick = () => {{
-                  if (!("speechSynthesis" in window)) {{
-                    status.textContent = "Speech output is not supported by this browser.";
-                    return;
-                  }}
-                  window.speechSynthesis.cancel();
-                  const u = new SpeechSynthesisUtterance(answerText);
-                  u.lang = speechLang;
-                  u.rate = 0.92;
-                  u.onstart = () => status.textContent = "Playing...";
-                  u.onend = () => status.textContent = "Finished.";
-                  u.onerror = () => status.textContent = "No compatible voice found. Check installed system/browser voices.";
-                  window.speechSynthesis.speak(u);
-                }};
-                document.getElementById("stop").onclick = () => {{
-                  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-                  status.textContent = "Stopped.";
-                }};
-              </script>
-            </div>
-            """,
-            height=85,
-        )
+        # st.html is the current Streamlit API for inline HTML; JavaScript may be restricted
+        # depending on the hosting environment, so browser speech support can vary.
+        speech_html = f"""
+        <div style="font-family:sans-serif">
+          <button id="speak" style="padding:8px 12px;cursor:pointer">▶ Play / వినండి</button>
+          <button id="stop" style="padding:8px 12px;cursor:pointer">■ Stop / ఆపండి</button>
+          <p id="status" aria-live="polite"></p>
+          <script>
+            const answerText = {answer_json};
+            const speechLang = {lang_json};
+            const status = document.getElementById("status");
+            document.getElementById("speak").onclick = () => {{
+              if (!("speechSynthesis" in window)) {{
+                status.textContent = "Speech output is not supported by this browser.";
+                return;
+              }}
+              window.speechSynthesis.cancel();
+              const u = new SpeechSynthesisUtterance(answerText);
+              u.lang = speechLang;
+              u.rate = 0.92;
+              u.onstart = () => status.textContent = "Playing...";
+              u.onend = () => status.textContent = "Finished.";
+              u.onerror = () => status.textContent = "No compatible voice found. Check installed system/browser voices.";
+              window.speechSynthesis.speak(u);
+            }};
+            document.getElementById("stop").onclick = () => {{
+              if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+              status.textContent = "Stopped.";
+            }};
+          </script>
+        </div>
+        """
+        # Streamlit's st.html sanitizes/handles HTML differently by version. If JS controls
+        # do not work in the hosted app, use the browser's built-in read-aloud instead.
+        try:
+            st.html(speech_html, unsafe_allow_javascript=True)
+        except TypeError:
+            components.html(speech_html, height=85)
 
 if st.session_state.crop_chat_history and st.button("🗑️ Clear Chat History"):
     st.session_state.crop_chat_history = []
     st.rerun()
 
-
 # ==================== ABOUT AND MODEL INFO ====================
-st.markdown('<div class="section-card"><div class="section-eyebrow">03 / Project details</div><h2 style="margin:0">About CropCare AI</h2><p class="small-note">Built as a student screening prototype for crop-leaf image classification and agricultural education.</p></div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="section-card"><div class="section-eyebrow">03 / Project details</div><h2 style="margin:0">About CropCare AI</h2><p class="small-note">Built as a student screening prototype for crop-leaf image classification and agricultural education.</p></div>',
+    unsafe_allow_html=True,
+)
 with st.expander("🌾 About the Project"):
-    st.write("""
-    This project uses MobileNetV2 transfer learning to classify leaf images
-    into classes present in the training dataset. Supported crops are Paddy,
-    Cotton, and Chilli. It includes basic guidance, an optional Gemini-powered
-    conversational chatbot, selectable Telugu/English responses, and browser
-    voice input/output. Free-tier API availability and quotas depend on the
-    current Google AI Studio account. This is a screening prototype, not a
-    replacement for professional agricultural diagnosis.
-    """)
+    st.write(
+        """
+        This project uses MobileNetV2 transfer learning to classify leaf images
+        into classes present in the training dataset. Supported crops are Paddy,
+        Cotton, and Chilli. It includes basic guidance, an optional Gemini-powered
+        conversational chatbot, selectable Telugu/English responses, and browser
+        voice input/output. Free-tier API availability and quotas depend on the
+        current Google AI Studio account. This is a screening prototype, not a
+        replacement for professional agricultural diagnosis.
+        """
+    )
 
 with st.expander("📊 Model Information"):
     st.write("**Architecture:** MobileNetV2 with transfer learning")
