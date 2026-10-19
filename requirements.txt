@@ -1,9 +1,9 @@
 
 streamlit
 tensorflow
-numpy
+numpy==2.1.3
+opencv-python-headless==4.11.0.86
 Pillow
-opencv-python-headless
 google-genai
 python-dotenv
 streamlit-mic-recorder
